@@ -1,19 +1,19 @@
 # animation-1
 - domain_lora_scale: 1.0
   adapter_lora_path: "models/Motion_Module/v3_sd15_adapter.ckpt"
-  dreambooth_path:   "models/DreamBooth_LoRA/realisticVisionV51_v51VAE.safetensors"
+  dreambooth_path: "models/DreamBooth_LoRA/realisticVisionV51_v51VAE.safetensors"
 
   inference_config: "configs/inference/inference-v3.yaml"
-  motion_module:    "models/Motion_Module/v3_sd15_mm.ckpt"
+  motion_module: "models/Motion_Module/v3_sd15_mm.ckpt"
 
   controlnet_config: "configs/inference/sparsectrl/latent_condition.yaml"
-  controlnet_path:   "models/SparseCtrl/v3_sd15_sparsectrl_rgb.ckpt"
+  controlnet_path: "models/SparseCtrl/v3_sd15_sparsectrl_rgb.ckpt"
 
   seed: -1
   steps: 25
   guidance_scale: 8.5
 
-  controlnet_image_indexs: [0]
+  controlnet_image_indexs: [ 0 ]
   controlnet_images:
     - "__assets__/demos/image/RealisticVision_firework.png"
 
@@ -27,19 +27,19 @@
 # animation-2
 - domain_lora_scale: 1.0
   adapter_lora_path: "models/Motion_Module/v3_sd15_adapter.ckpt"
-  dreambooth_path:   "models/DreamBooth_LoRA/realisticVisionV51_v51VAE.safetensors"
+  dreambooth_path: "models/DreamBooth_LoRA/realisticVisionV51_v51VAE.safetensors"
 
   inference_config: "configs/inference/inference-v3.yaml"
-  motion_module:    "models/Motion_Module/v3_sd15_mm.ckpt"
+  motion_module: "models/Motion_Module/v3_sd15_mm.ckpt"
 
   controlnet_config: "configs/inference/sparsectrl/latent_condition.yaml"
-  controlnet_path:   "models/SparseCtrl/v3_sd15_sparsectrl_rgb.ckpt"
+  controlnet_path: "models/SparseCtrl/v3_sd15_sparsectrl_rgb.ckpt"
 
   seed: -1
   steps: 25
   guidance_scale: 8.5
 
-  controlnet_image_indexs: [0]
+  controlnet_image_indexs: [ 0 ]
   controlnet_images:
     - "__assets__/demos/image/RealisticVision_sunset.png"
 
