@@ -19,10 +19,6 @@
 import argparse
 
 import torch
-from safetensors.torch import load_file
-
-from diffusers import StableDiffusionPipeline
-
 
 def load_diffusers_lora(pipeline, state_dict, alpha=1.0):
     # directly update weight in diffusers model

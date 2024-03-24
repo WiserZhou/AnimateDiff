@@ -10,7 +10,8 @@ import torch.distributed as dist
 from safetensors import safe_open
 from tqdm import tqdm
 from einops import rearrange
-from animatediff.utils.convert_from_ckpt import convert_ldm_unet_checkpoint, convert_ldm_clip_checkpoint, convert_ldm_vae_checkpoint
+from animatediff.utils.convert_from_ckpt import convert_ldm_unet_checkpoint, convert_ldm_clip_checkpoint, \
+    convert_ldm_vae_checkpoint
 from animatediff.utils.convert_lora_safetensor_to_diffusers import convert_lora, load_diffusers_lora
 
 
@@ -91,28 +92,31 @@ def ddim_inversion(pipeline, ddim_scheduler, video_latent, num_inv_steps, prompt
     ddim_latents = ddim_loop(pipeline, ddim_scheduler, video_latent, num_inv_steps, prompt)
     return ddim_latents
 
+
 def load_weights(
-    animation_pipeline,
-    # motion module
-    motion_module_path         = "",
-    motion_module_lora_configs = [],
-    # domain adapter
-    adapter_lora_path          = "",
-    adapter_lora_scale         = 1.0,
-    # image layers
-    dreambooth_model_path      = "",
-    lora_model_path            = "",
-    lora_alpha                 = 0.8,
+        animation_pipeline,
+        # motion module
+        motion_module_path="",
+        motion_module_lora_configs=[],
+        # domain adapter
+        adapter_lora_path="",
+        adapter_lora_scale=1.0,
+        # image layers
+        dreambooth_model_path="",
+        lora_model_path="",
+        lora_alpha=0.8,
 ):
     # motion module
     unet_state_dict = {}
     if motion_module_path != "":
         print(f"load motion module from {motion_module_path}")
         motion_module_state_dict = torch.load(motion_module_path, map_location="cpu")
-        motion_module_state_dict = motion_module_state_dict["state_dict"] if "state_dict" in motion_module_state_dict else motion_module_state_dict
-        unet_state_dict.update({name: param for name, param in motion_module_state_dict.items() if "motion_modules." in name})
+        motion_module_state_dict = motion_module_state_dict[
+            "state_dict"] if "state_dict" in motion_module_state_dict else motion_module_state_dict
+        unet_state_dict.update(
+            {name: param for name, param in motion_module_state_dict.items() if "motion_modules." in name})
         unet_state_dict.pop("animatediff_config", "")
-    
+
     missing, unexpected = animation_pipeline.unet.load_state_dict(unet_state_dict, strict=False)
     assert len(unexpected) == 0
     del unet_state_dict
@@ -127,7 +131,7 @@ def load_weights(
                     dreambooth_state_dict[key] = f.get_tensor(key)
         elif dreambooth_model_path.endswith(".ckpt"):
             dreambooth_state_dict = torch.load(dreambooth_model_path, map_location="cpu")
-            
+
         # 1. vae
         converted_vae_checkpoint = convert_ldm_vae_checkpoint(dreambooth_state_dict, animation_pipeline.vae.config)
         animation_pipeline.vae.load_state_dict(converted_vae_checkpoint)
@@ -137,7 +141,7 @@ def load_weights(
         # 3. text_model
         animation_pipeline.text_encoder = convert_ldm_clip_checkpoint(dreambooth_state_dict)
         del dreambooth_state_dict
-        
+
     # lora layers
     if lora_model_path != "":
         print(f"load lora model from {lora_model_path}")
@@ -146,7 +150,7 @@ def load_weights(
         with safe_open(lora_model_path, framework="pt", device="cpu") as f:
             for key in f.keys():
                 lora_state_dict[key] = f.get_tensor(key)
-                
+
         animation_pipeline = convert_lora(animation_pipeline, lora_state_dict, alpha=lora_alpha)
         del lora_state_dict
 
@@ -154,7 +158,8 @@ def load_weights(
     if adapter_lora_path != "":
         print(f"load domain lora from {adapter_lora_path}")
         domain_lora_state_dict = torch.load(adapter_lora_path, map_location="cpu")
-        domain_lora_state_dict = domain_lora_state_dict["state_dict"] if "state_dict" in domain_lora_state_dict else domain_lora_state_dict
+        domain_lora_state_dict = domain_lora_state_dict[
+            "state_dict"] if "state_dict" in domain_lora_state_dict else domain_lora_state_dict
         domain_lora_state_dict.pop("animatediff_config", "")
 
         animation_pipeline = load_diffusers_lora(animation_pipeline, domain_lora_state_dict, alpha=adapter_lora_scale)
@@ -164,7 +169,8 @@ def load_weights(
         path, alpha = motion_module_lora_config["path"], motion_module_lora_config["alpha"]
         print(f"load motion LoRA from {path}")
         motion_lora_state_dict = torch.load(path, map_location="cpu")
-        motion_lora_state_dict = motion_lora_state_dict["state_dict"] if "state_dict" in motion_lora_state_dict else motion_lora_state_dict
+        motion_lora_state_dict = motion_lora_state_dict[
+            "state_dict"] if "state_dict" in motion_lora_state_dict else motion_lora_state_dict
         motion_lora_state_dict.pop("animatediff_config", "")
 
         animation_pipeline = load_diffusers_lora(animation_pipeline, motion_lora_state_dict, alpha)

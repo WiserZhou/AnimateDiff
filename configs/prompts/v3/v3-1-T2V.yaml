@@ -8,6 +8,7 @@
 
   controlnet_config: "configs/inference/sparsectrl/latent_condition.yaml"
   controlnet_path: "models/SparseCtrl/v3_sd15_sparsectrl_rgb.ckpt"
+  #  .ckpt：这是PyTorch和TensorFlow等深度学习框架中用于保存模型权重和训练状态的文件扩展名，全称为checkpoint。加载这类文件可以让模型恢复到保存时的状态，继续训练或者直接用于推理预测。
 
   H: 256
   W: 384

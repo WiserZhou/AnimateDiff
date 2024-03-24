@@ -15,39 +15,21 @@
 """ Conversion script for the Stable Diffusion checkpoints."""
 
 import re
-from io import BytesIO
 from typing import Optional
-
-import requests
 import torch
+from diffusers.pipelines.latent_diffusion.pipeline_latent_diffusion import LDMBertConfig, LDMBertModel
+from diffusers.pipelines.paint_by_example import PaintByExampleImageEncoder
 from transformers import (
-    AutoFeatureExtractor,
-    BertTokenizerFast,
     CLIPImageProcessor,
     CLIPTextModel,
-    CLIPTextModelWithProjection,
-    CLIPTokenizer,
     CLIPVisionConfig,
     CLIPVisionModelWithProjection,
 )
 
-from diffusers.models import (
-    AutoencoderKL,
-    PriorTransformer,
-    UNet2DConditionModel,
-)
 from diffusers.schedulers import (
     DDIMScheduler,
     DDPMScheduler,
-    DPMSolverMultistepScheduler,
-    EulerAncestralDiscreteScheduler,
-    EulerDiscreteScheduler,
-    HeunDiscreteScheduler,
-    LMSDiscreteScheduler,
-    PNDMScheduler,
-    UnCLIPScheduler,
 )
-from diffusers.utils.import_utils import BACKENDS_MAPPING
 
 
 def shave_segments(path, n_shave_prefix_segments=1):
@@ -150,7 +132,7 @@ def renew_vae_attention_paths(old_list, n_shave_prefix_segments=0):
 
 
 def assign_to_checkpoint(
-    paths, checkpoint, old_checkpoint, attention_paths_to_split=None, additional_replacements=None, config=None
+        paths, checkpoint, old_checkpoint, attention_paths_to_split=None, additional_replacements=None, config=None
 ):
     """
     This does the final conversion step: take locally converted weights and apply a global renaming to them. It splits
@@ -693,7 +675,7 @@ def convert_ldm_bert_checkpoint(checkpoint, config):
         for i, hf_layer in enumerate(hf_layers):
             if i != 0:
                 i += i
-            pt_layer = pt_layers[i : i + 2]
+            pt_layer = pt_layers[i: i + 2]
             _copy_layer(hf_layer, pt_layer)
 
     hf_model = LDMBertModel(config).eval()
@@ -721,7 +703,7 @@ def convert_ldm_clip_checkpoint(checkpoint):
 
     for key in keys:
         if key.startswith("cond_stage_model.transformer"):
-            text_model_dict[key[len("cond_stage_model.transformer.") :]] = checkpoint[key]
+            text_model_dict[key[len("cond_stage_model.transformer."):]] = checkpoint[key]
 
     text_model.load_state_dict(text_model_dict)
 
@@ -762,14 +744,14 @@ def convert_paint_by_example_checkpoint(checkpoint):
 
     for key in keys:
         if key.startswith("cond_stage_model.transformer"):
-            text_model_dict[key[len("cond_stage_model.transformer.") :]] = checkpoint[key]
+            text_model_dict[key[len("cond_stage_model.transformer."):]] = checkpoint[key]
 
     # load clip vision
     model.model.load_state_dict(text_model_dict)
 
     # load mapper
     keys_mapper = {
-        k[len("cond_stage_model.mapper.res") :]: v
+        k[len("cond_stage_model.mapper.res"):]: v
         for k, v in checkpoint.items()
         if k.startswith("cond_stage_model.mapper")
     }
@@ -794,7 +776,7 @@ def convert_paint_by_example_checkpoint(checkpoint):
         for i, mapped_name in enumerate(mapped_names):
             new_name = ".".join([prefix, mapped_name, suffix])
             shape = value.shape[0] // num_splits
-            mapped_weights[new_name] = value[i * shape : (i + 1) * shape]
+            mapped_weights[new_name] = value[i * shape: (i + 1) * shape]
 
     model.mapper.load_state_dict(mapped_weights)
 
@@ -839,19 +821,19 @@ def convert_open_clip_checkpoint(checkpoint):
         if key in textenc_conversion_map:
             text_model_dict[textenc_conversion_map[key]] = checkpoint[key]
         if key.startswith("cond_stage_model.model.transformer."):
-            new_key = key[len("cond_stage_model.model.transformer.") :]
+            new_key = key[len("cond_stage_model.model.transformer."):]
             if new_key.endswith(".in_proj_weight"):
                 new_key = new_key[: -len(".in_proj_weight")]
                 new_key = textenc_pattern.sub(lambda m: protected[re.escape(m.group(0))], new_key)
                 text_model_dict[new_key + ".q_proj.weight"] = checkpoint[key][:d_model, :]
-                text_model_dict[new_key + ".k_proj.weight"] = checkpoint[key][d_model : d_model * 2, :]
-                text_model_dict[new_key + ".v_proj.weight"] = checkpoint[key][d_model * 2 :, :]
+                text_model_dict[new_key + ".k_proj.weight"] = checkpoint[key][d_model: d_model * 2, :]
+                text_model_dict[new_key + ".v_proj.weight"] = checkpoint[key][d_model * 2:, :]
             elif new_key.endswith(".in_proj_bias"):
                 new_key = new_key[: -len(".in_proj_bias")]
                 new_key = textenc_pattern.sub(lambda m: protected[re.escape(m.group(0))], new_key)
                 text_model_dict[new_key + ".q_proj.bias"] = checkpoint[key][:d_model]
-                text_model_dict[new_key + ".k_proj.bias"] = checkpoint[key][d_model : d_model * 2]
-                text_model_dict[new_key + ".v_proj.bias"] = checkpoint[key][d_model * 2 :]
+                text_model_dict[new_key + ".k_proj.bias"] = checkpoint[key][d_model: d_model * 2]
+                text_model_dict[new_key + ".v_proj.bias"] = checkpoint[key][d_model * 2:]
             else:
                 new_key = textenc_pattern.sub(lambda m: protected[re.escape(m.group(0))], new_key)
 
@@ -896,7 +878,7 @@ def stable_unclip_image_encoder(original_config):
 
 
 def stable_unclip_image_noising_components(
-    original_config, clip_stats_path: Optional[str] = None, device: Optional[str] = None
+        original_config, clip_stats_path: Optional[str] = None, device: Optional[str] = None
 ):
     """
     Returns the noising components for the img2img and txt2img unclip pipelines.
@@ -941,7 +923,7 @@ def stable_unclip_image_noising_components(
 
 
 def convert_controlnet_checkpoint(
-    checkpoint, original_config, checkpoint_path, image_size, upcast_attention, extract_ema
+        checkpoint, original_config, checkpoint_path, image_size, upcast_attention, extract_ema
 ):
     ctrlnet_config = create_unet_diffusers_config(original_config, image_size=image_size, controlnet=True)
     ctrlnet_config["upcast_attention"] = upcast_attention
