@@ -35,6 +35,11 @@ class WebVid10M(Dataset):
             transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5], inplace=True),
         ])
 
+    '''
+    根据给定的索引idx从视频中抽取指定数量的帧。如果处理的是视频，会按照设定的帧数和步长随机抽取子序列；
+    若处理的是图像，则直接抽取一帧。随后将抽取出的帧数据转换为Tensor，并除以255归一化至0-1之间。
+    '''
+
     def get_batch(self, idx):
         video_dict = self.dataset[idx]
         videoid, name, page_dir = video_dict['videoid'], video_dict['name'], video_dict['page_dir']
