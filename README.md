@@ -1,3 +1,4 @@
+# 个人学习所用，不是本人创作！
 # AnimateDiff
 
 This repository is the official implementation of [AnimateDiff](https://arxiv.org/abs/2307.04725) [ICLR2024 Spotlight].
